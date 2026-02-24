@@ -9,6 +9,7 @@ import (
 
 	dbm "github.com/prasertnuannim/sert_v3/internal/adapter/persistence/gorm/model"
 	"github.com/prasertnuannim/sert_v3/internal/domain/entity"
+	"github.com/prasertnuannim/sert_v3/internal/domain/errorx"
 )
 
 type UserRepo struct{ db *gorm.DB }
@@ -19,6 +20,9 @@ func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*entity.User, 
 	var m dbm.User
 	err := r.db.WithContext(ctx).Where("email = ?", email).First(&m).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errorx.ErrUserNotFound
+		}
 		return nil, err
 	}
 	return mapUser(m), nil

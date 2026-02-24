@@ -4,7 +4,9 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/prasertnuannim/sert_v3/internal/domain/errorx"
 	"github.com/prasertnuannim/sert_v3/internal/usecase/dto"
@@ -25,12 +27,19 @@ func New(users port.UserRepository, tokens port.TokenRepository, hasher port.Pas
 }
 
 func (s *Service) Login(ctx context.Context, in dto.LoginInput) (*dto.LoginOutput, error) {
+	if strings.TrimSpace(in.Email) == "" {
+		return nil, errorx.ErrEmailRequired
+	}
+
 	u, err := s.users.GetByEmail(ctx, in.Email)
 	if err != nil {
+		if errors.Is(err, errorx.ErrUserNotFound) {
+			return nil, errorx.ErrEmailNotFound
+		}
 		return nil, errorx.ErrInvalidCredentials
 	}
 	if !s.hasher.Compare(u.PasswordHash, in.Password) {
-		return nil, errorx.ErrInvalidCredentials
+		return nil, errorx.ErrPasswordIncorrect
 	}
 
 	access, accessExp, err := s.signer.SignAccess(u.ID, u.Email, u.Role)

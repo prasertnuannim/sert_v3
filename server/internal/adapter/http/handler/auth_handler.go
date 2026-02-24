@@ -26,10 +26,18 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 
 	out, err := h.svc.Login(c.Context(), dto.LoginInput{Email: req.Email, Password: req.Password})
 	if err != nil {
-		if errors.Is(err, errorx.ErrInvalidCredentials) {
+		switch {
+		case errors.Is(err, errorx.ErrEmailRequired):
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		case errors.Is(err, errorx.ErrEmailNotFound):
+			return fiber.NewError(fiber.StatusNotFound, err.Error())
+		case errors.Is(err, errorx.ErrPasswordIncorrect):
+			return fiber.NewError(fiber.StatusUnauthorized, err.Error())
+		case errors.Is(err, errorx.ErrInvalidCredentials):
 			return fiber.NewError(fiber.StatusUnauthorized, "invalid credentials")
+		default:
+			return fiber.NewError(fiber.StatusInternalServerError, "internal error")
 		}
-		return fiber.NewError(fiber.StatusInternalServerError, "internal error")
 	}
 
 	return c.JSON(fiber.Map{
