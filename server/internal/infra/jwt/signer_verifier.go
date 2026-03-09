@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/prasertnuannim/sert_v3/internal/usecase/port"
 )
 
@@ -64,6 +65,7 @@ func (s *SignerVerifier) SignRefresh(userID string) (string, time.Time, error) {
 		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    s.issuer,
+			ID:        uuid.NewString(),
 			ExpiresAt: jwt.NewNumericDate(exp),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},

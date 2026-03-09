@@ -22,6 +22,10 @@ type RefreshInput struct {
 	RefreshToken string
 }
 
+type LogoutInput struct {
+	RefreshToken string
+}
+
 type RefreshOutput struct {
 	UserID       string
 	Email        string

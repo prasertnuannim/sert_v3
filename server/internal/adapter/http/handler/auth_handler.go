@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/prasertnuannim/sert_v3/internal/domain/errorx"
@@ -76,6 +77,23 @@ func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
 		"refresh_token": out.RefreshToken,
 		"refresh_exp":   out.RefreshExp.Unix(),
 	})
+}
+
+func (h *AuthHandler) Logout(c *fiber.Ctx) error {
+	var req struct {
+		RefreshToken string `json:"refresh_token"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid body")
+	}
+	if strings.TrimSpace(req.RefreshToken) == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "refresh token is required")
+	}
+
+	if err := h.svc.Logout(c.Context(), dto.LogoutInput{RefreshToken: req.RefreshToken}); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "internal error")
+	}
+	return c.SendStatus(fiber.StatusNoContent)
 }
 
 func (h *AuthHandler) Me(c *fiber.Ctx) error {

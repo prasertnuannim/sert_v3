@@ -14,7 +14,7 @@ import (
 	"github.com/prasertnuannim/sert_v3/internal/usecase/port"
 )
 
-func Register(app *fiber.App, h *handler.AuthHandler, verifier port.TokenVerifier) {
+func Register(app *fiber.App, h *handler.AuthHandler, userHandler *handler.UserHandler, verifier port.TokenVerifier) {
 	app.Use(recover.New())
 	app.Use(cors.New())
 	app.Use(middleware.RequestID())
@@ -30,8 +30,16 @@ func Register(app *fiber.App, h *handler.AuthHandler, verifier port.TokenVerifie
 		h.Login,
 	)
 	auth.Post("/refresh", h.Refresh)
+	auth.Post("/logout", h.Logout)
 
 	protected := app.Group("", middleware.RequireAuth(verifier))
 	protected.Get("/me", h.Me)
 	protected.Get("/admin", middleware.RequireRole(entity.RoleAdmin), h.AdminOnly)
+
+	users := protected.Group("/users", middleware.RequireRole(entity.RoleAdmin))
+	users.Get("/", userHandler.List)
+	users.Get("/:id", userHandler.GetByID)
+	users.Post("/", userHandler.Create)
+	users.Patch("/:id", userHandler.Update)
+	users.Delete("/:id", userHandler.Delete)
 }

@@ -33,10 +33,11 @@ func BuildApp(db *gorm.DB, issuer, accessSecret, refreshSecret string, accessTTL
 	clock := timeinfra.RealClock{}
 	authSvc := auth.New(userRepo, tokenRepo, hasher, j, j, clock)
 
-	h := handler.NewAuthHandler(authSvc)
+	authHandler := handler.NewAuthHandler(authSvc)
+	userHandler := handler.NewUserHandler(db)
 
 	app := fiber.New()
-	httpadapter.Register(app, h, j)
+	httpadapter.Register(app, authHandler, userHandler, j)
 
 	return app
 }

@@ -88,11 +88,6 @@ func (s *Service) Refresh(ctx context.Context, in dto.RefreshInput) (*dto.Refres
 		return nil, errorx.ErrTokenRevoked
 	}
 
-	now := s.clock.Now()
-	if err := s.tokens.RevokeByHash(ctx, h, now); err != nil {
-		return nil, fmt.Errorf("revoke refresh token: %w", err)
-	}
-
 	u, err := s.users.GetByID(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("load user for token refresh: %w", err)
@@ -102,13 +97,6 @@ func (s *Service) Refresh(ctx context.Context, in dto.RefreshInput) (*dto.Refres
 	if err != nil {
 		return nil, fmt.Errorf("issue access token: %w", err)
 	}
-	newRefresh, newRefreshExp, err := s.signer.SignRefresh(userID)
-	if err != nil {
-		return nil, fmt.Errorf("issue refresh token: %w", err)
-	}
-	if err := s.tokens.InsertRefresh(ctx, userID, hashToken(newRefresh), newRefreshExp); err != nil {
-		return nil, fmt.Errorf("store refresh token: %w", err)
-	}
 
 	return &dto.RefreshOutput{
 		UserID:       userID,
@@ -116,9 +104,21 @@ func (s *Service) Refresh(ctx context.Context, in dto.RefreshInput) (*dto.Refres
 		Role:         u.Role,
 		AccessToken:  access,
 		AccessExp:    accessExp,
-		RefreshToken: newRefresh,
-		RefreshExp:   newRefreshExp,
+		RefreshToken: in.RefreshToken,
+		RefreshExp:   rt.ExpiresAt,
 	}, nil
+}
+
+func (s *Service) Logout(ctx context.Context, in dto.LogoutInput) error {
+	refresh := strings.TrimSpace(in.RefreshToken)
+	if refresh == "" {
+		return nil
+	}
+
+	if err := s.tokens.RevokeByHash(ctx, hashToken(refresh), s.clock.Now()); err != nil {
+		return fmt.Errorf("revoke refresh token: %w", err)
+	}
+	return nil
 }
 
 func (s *Service) Me(ctx context.Context, userID string) (*dto.MeOutput, error) {
