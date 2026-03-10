@@ -12,6 +12,8 @@ type LoginOutput struct {
 	Email        string
 	Name         string
 	Role         string
+	Tenant       string
+	Promotion    string
 	AccessToken  string
 	AccessExp    time.Time
 	RefreshToken string
@@ -30,6 +32,8 @@ type RefreshOutput struct {
 	UserID       string
 	Email        string
 	Role         string
+	Tenant       string
+	Promotion    string
 	AccessToken  string
 	AccessExp    time.Time
 	RefreshToken string
@@ -37,8 +41,10 @@ type RefreshOutput struct {
 }
 
 type MeOutput struct {
-	UserID string
-	Email  string
-	Name   string
-	Role   string
+	UserID    string
+	Email     string
+	Name      string
+	Role      string
+	Tenant    string
+	Promotion string
 }

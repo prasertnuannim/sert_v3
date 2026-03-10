@@ -7,7 +7,7 @@ import { DataTable, Column } from "@/components/form/dataTable";
 
 const roleToText = (role: FullUser["role"] | undefined) =>
   typeof role === "string" ? role : role?.name ?? "";
-type UserColumnKey = "name" | "email" | "role";
+type UserColumnKey = "name" | "email" | "role" | "tenant" | "promotion";
 
 export default function AccountForm() {
   const [users, setUsers] = useState<FullUser[]>([]);
@@ -92,7 +92,7 @@ export default function AccountForm() {
           {roleToText(u.role)}
         </span>
       ),
-      editor: ({ row, value, set }) => (
+      editor: ({ value, set }) => (
         <select
           value={roleToText(value)}
           onChange={(e) => set(e.target.value)}
@@ -101,6 +101,34 @@ export default function AccountForm() {
           <option value="admin">admin</option>
           <option value="user">user</option>
         </select>
+      ),
+    },
+    {
+      key: "tenant",
+      header: "Tenant",
+      sortable: true,
+      className: "break-all max-w-[220px]",
+      editor: ({ value, set }) => (
+        <input
+          type="text"
+          value={typeof value === "string" ? value : ""}
+          onChange={(e) => set(e.target.value)}
+          className="border px-2 py-1 rounded w-full text-sm"
+        />
+      ),
+    },
+    {
+      key: "promotion",
+      header: "Promotion",
+      sortable: true,
+      className: "break-all max-w-[220px]",
+      editor: ({ value, set }) => (
+        <input
+          type="text"
+          value={typeof value === "string" ? value : ""}
+          onChange={(e) => set(e.target.value)}
+          className="border px-2 py-1 rounded w-full text-sm"
+        />
       ),
     },
   ];
@@ -112,7 +140,7 @@ export default function AccountForm() {
         columns={columns}
         initialPageSize={10}
         initialSort={{ key: "name", dir: "asc" }}
-        searchPlaceholder="Search name / email / role…"
+        searchPlaceholder="Search name / email / role / tenant / promotion…"
         emptyMessage={usersError ?? "No results."}
         isLoading={isUsersLoading || isCreatePending}
         onUpdate={handleUpdateUser}

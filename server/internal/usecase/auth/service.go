@@ -61,6 +61,8 @@ func (s *Service) Login(ctx context.Context, in dto.LoginInput) (*dto.LoginOutpu
 		Email:        u.Email,
 		Name:         u.Name,
 		Role:         u.Role,
+		Tenant:       u.Tenant,
+		Promotion:    u.Promotion,
 		AccessToken:  access,
 		AccessExp:    accessExp,
 		RefreshToken: refresh,
@@ -102,6 +104,8 @@ func (s *Service) Refresh(ctx context.Context, in dto.RefreshInput) (*dto.Refres
 		UserID:       userID,
 		Email:        u.Email,
 		Role:         u.Role,
+		Tenant:       u.Tenant,
+		Promotion:    u.Promotion,
 		AccessToken:  access,
 		AccessExp:    accessExp,
 		RefreshToken: in.RefreshToken,
@@ -126,7 +130,14 @@ func (s *Service) Me(ctx context.Context, userID string) (*dto.MeOutput, error) 
 	if err != nil {
 		return nil, fmt.Errorf("load user: %w", err)
 	}
-	return &dto.MeOutput{UserID: u.ID, Email: u.Email, Name: u.Name, Role: u.Role}, nil
+	return &dto.MeOutput{
+		UserID:    u.ID,
+		Email:     u.Email,
+		Name:      u.Name,
+		Role:      u.Role,
+		Tenant:    u.Tenant,
+		Promotion: u.Promotion,
+	}, nil
 }
 
 func hashToken(tok string) string {

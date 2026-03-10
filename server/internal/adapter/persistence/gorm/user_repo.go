@@ -83,6 +83,17 @@ func mapUser(m dbm.User) *entity.User {
 	if m.PasswordHash != nil {
 		passwordHash = *m.PasswordHash
 	}
+
+	tenant := ""
+	if m.Tenant != nil {
+		tenant = *m.Tenant
+	}
+
+	promotion := ""
+	if m.Promotion != nil {
+		promotion = *m.Promotion
+	}
+
 	role := m.Role
 	if role == "" {
 		role = entity.RoleUser
@@ -94,6 +105,8 @@ func mapUser(m dbm.User) *entity.User {
 		PasswordHash: passwordHash,
 		Name:         name,
 		Role:         role,
+		Tenant:       tenant,
+		Promotion:    promotion,
 		CreatedAt:    m.CreatedAt,
 		UpdatedAt:    m.UpdatedAt,
 	}

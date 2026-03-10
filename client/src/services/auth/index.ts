@@ -8,6 +8,8 @@ export type AppUser = {
   email: string;
   name: string;
   role: string;
+  tenant: string;
+  promotion: string;
 };
 
 type BackendLoginResponse = {
@@ -19,6 +21,10 @@ type BackendLoginResponse = {
 };
 
 type BackendRefreshResponse = {
+  email?: string;
+  role?: string;
+  tenant?: string;
+  promotion?: string;
   access_exp: number;
   access_token: string;
   refresh_exp?: number;
@@ -36,6 +42,8 @@ type ExtendedUser = User & {
   email: string;
   name: string;
   role: string;
+  tenant: string;
+  promotion: string;
   accessToken: string;
   accessTokenExp: number;
   refreshToken: string;
@@ -59,6 +67,7 @@ const isExpired = (exp?: number): boolean => {
 const accessJwtSecret = process.env.JWT_ACCESS_SECRET;
 const nextAuthSecret = process.env.NEXTAUTH_SECRET;
 const goApiUrl = process.env.GO_API_URL;
+const nextAuthDebugSession = process.env.NEXTAUTH_DEBUG_SESSION === "true";
 
 if (!accessJwtSecret) {
   throw new Error("Missing JWT_ACCESS_SECRET");
@@ -66,6 +75,12 @@ if (!accessJwtSecret) {
 
 if (nextAuthSecret && nextAuthSecret !== accessJwtSecret) {
   throw new Error("NEXTAUTH_SECRET must match JWT_ACCESS_SECRET");
+}
+
+function redactToken(token?: string): string | undefined {
+  if (!token) return undefined;
+  if (token.length <= 12) return "[redacted]";
+  return `${token.slice(0, 6)}...[redacted]...${token.slice(-6)}`;
 }
 
 const refreshInFlight = new Map<string, Promise<RefreshCallResult>>();
@@ -127,6 +142,15 @@ async function refreshAccessToken(token: ExtendedToken): Promise<ExtendedToken> 
 
     return {
       ...token,
+      user: token.user
+        ? {
+            ...token.user,
+            email: data.email ?? token.user.email,
+            role: data.role ?? token.user.role,
+            tenant: data.tenant ?? token.user.tenant ?? "",
+            promotion: data.promotion ?? token.user.promotion ?? "",
+          }
+        : token.user,
       accessToken: data.access_token,
       accessTokenExp: data.access_exp,
       refreshToken: data.refresh_token ?? token.refreshToken,
@@ -165,7 +189,6 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   jwt: {
-    maxAge: 30 * 24 * 60 * 60,
     encode: encodeSharedJwt,
     decode: decodeSharedJwt,
   },
@@ -222,6 +245,8 @@ export const authOptions: NextAuthOptions = {
             email: data.user.email,
             name: data.user.name,
             role: data.user.role,
+            tenant: data.user.tenant ?? "",
+            promotion: data.user.promotion ?? "",
             accessToken: data.access_token,
             accessTokenExp: data.access_exp,
             refreshToken: data.refresh_token,
@@ -253,6 +278,8 @@ export const authOptions: NextAuthOptions = {
             email: currentUser.email,
             name: currentUser.name,
             role: currentUser.role,
+            tenant: currentUser.tenant,
+            promotion: currentUser.promotion,
           },
           accessToken: currentUser.accessToken,
           accessTokenExp: currentUser.accessTokenExp,
@@ -275,6 +302,22 @@ export const authOptions: NextAuthOptions = {
       session.user = currentToken.user as typeof session.user;
       session.accessToken = currentToken.accessToken;
       session.error = currentToken.error;
+
+      if (nextAuthDebugSession) {
+        console.log("[next-auth][session]", {
+          userId: session.user?.id,
+          email: session.user?.email,
+          role: session.user?.role,
+          tenant: session.user?.tenant,
+          promotion: session.user?.promotion,
+          error: session.error,
+          accessTokenExp: currentToken.accessTokenExp,
+          refreshTokenExp: currentToken.refreshTokenExp,
+          accessToken: redactToken(currentToken.accessToken),
+          refreshToken: redactToken(currentToken.refreshToken),
+          at: new Date().toISOString(),
+        });
+      }
 
       return session;
     },

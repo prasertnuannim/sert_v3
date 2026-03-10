@@ -37,7 +37,7 @@ func Load() Config {
 	_ = godotenv.Load()
 
 	accessMin := getEnvInt("ACCESS_TOKEN_TTL_MIN", 15)
-	refreshDays := getEnvInt("REFRESH_TOKEN_TTL_DAYS", 30)
+	refreshTTL := getRefreshTTL()
 
 	return Config{
 		AppPort: getEnvInt("APP_PORT", 8081),
@@ -54,7 +54,7 @@ func Load() Config {
 		JWTAccessSecret:  mustEnv("JWT_ACCESS_SECRET"),
 		JWTRefreshSecret: mustEnv("JWT_REFRESH_SECRET"),
 		AccessTTL:        time.Duration(accessMin) * time.Minute,
-		RefreshTTL:       time.Duration(refreshDays) * 24 * time.Hour,
+		RefreshTTL:       refreshTTL,
 
 		SeedEmail:    getEnv("SEED_ADMIN_EMAIL", ""),
 		SeedPassword: getEnv("SEED_ADMIN_PASSWORD", ""),
@@ -62,6 +62,21 @@ func Load() Config {
 		SeedRole:     getEnv("SEED_ADMIN_ROLE", "admin"),
 		SeedEnabled:  getEnvBool("SEED_ENABLED", true),
 	}
+}
+
+func getRefreshTTL() time.Duration {
+	// Minute override is useful for local testing without changing day-based defaults.
+	if mins := os.Getenv("REFRESH_TOKEN_TTL_MIN"); mins != "" {
+		m, err := strconv.Atoi(mins)
+		if err != nil {
+			log.Printf("invalid int env REFRESH_TOKEN_TTL_MIN=%q fallback to REFRESH_TOKEN_TTL_DAYS", mins)
+		} else {
+			return time.Duration(m) * time.Minute
+		}
+	}
+
+	days := getEnvInt("REFRESH_TOKEN_TTL_DAYS", 30)
+	return time.Duration(days) * 24 * time.Hour
 }
 
 func getEnv(key, def string) string {

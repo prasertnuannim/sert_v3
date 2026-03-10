@@ -11,6 +11,8 @@ export type FullUser = {
   name: string;
   email: string;
   role: string;
+  tenant: string;
+  promotion: string;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -33,6 +35,8 @@ const createUserSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   email: z.string().trim().email("Invalid email address"),
   role: z.string().trim().min(1, "Role is required"),
+  tenant: z.string().trim().optional().default(""),
+  promotion: z.string().trim().optional().default(""),
 });
 
 const updateUserSchema = createUserSchema
@@ -52,6 +56,8 @@ const backendUserSchema = z
     name: z.string().optional().default(""),
     email: z.string().optional().default(""),
     role: z.string().optional().default("user"),
+    tenant: z.string().optional().default(""),
+    promotion: z.string().optional().default(""),
     createdAt: z.string().optional(),
     updatedAt: z.string().optional(),
     created_at: z.string().optional(),
@@ -82,6 +88,8 @@ const toUser = (input: unknown): FullUser => {
     name: parsed.data.name,
     email: parsed.data.email,
     role: parsed.data.role,
+    tenant: parsed.data.tenant,
+    promotion: parsed.data.promotion,
     createdAt: parsed.data.createdAt ?? parsed.data.created_at,
     updatedAt: parsed.data.updatedAt ?? parsed.data.updated_at,
   };
@@ -150,6 +158,8 @@ const createUser = async (
     name: String(formData.get("name") ?? ""),
     email: String(formData.get("email") ?? ""),
     role: String(formData.get("role") ?? ""),
+    tenant: String(formData.get("tenant") ?? ""),
+    promotion: String(formData.get("promotion") ?? ""),
   });
 
   if (!parsed.success) {

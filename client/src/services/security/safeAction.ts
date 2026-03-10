@@ -14,6 +14,8 @@ type AuthActionOptions = {
 export type AuthContext = {
   userId: string;
   role: AccessRole;
+  tenant: string;
+  promotion: string;
   accessToken: string;
 };
 
@@ -60,6 +62,8 @@ export function withAuthAction<TArgs extends unknown[], TResult>(
       {
         userId: session.user.id,
         role: session.user.role as AccessRole,
+        tenant: session.user.tenant,
+        promotion: session.user.promotion,
         accessToken: session.accessToken,
       },
       ...args,

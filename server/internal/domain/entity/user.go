@@ -13,6 +13,8 @@ type User struct {
 	PasswordHash string
 	Name         string
 	Role         string
+	Tenant       string
+	Promotion    string
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }

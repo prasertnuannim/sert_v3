@@ -9,6 +9,18 @@ function toSecretKey(secret: string | Buffer): Uint8Array {
   return encoder.encode(value);
 }
 
+function resolveSessionExp(payload: JWTPayload, now: number, maxAge?: number): number {
+  const fallbackExp = now + (maxAge ?? DEFAULT_MAX_AGE_SECONDS);
+  const refreshExpClaim = payload["refreshTokenExp"];
+
+  if (typeof refreshExpClaim !== "number" || !Number.isFinite(refreshExpClaim)) {
+    return fallbackExp;
+  }
+
+  // Backend refresh token TTL is the source of truth for session lifetime.
+  return refreshExpClaim;
+}
+
 export async function encodeSharedJwt({
   token,
   secret,
@@ -18,7 +30,7 @@ export async function encodeSharedJwt({
 
   const now = Math.floor(Date.now() / 1000);
   const payload = { ...(token as JWT) } as JWTPayload;
-  const exp = now + (maxAge ?? DEFAULT_MAX_AGE_SECONDS);
+  const exp = resolveSessionExp(payload, now, maxAge);
 
   return new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
@@ -42,4 +54,3 @@ export async function decodeSharedJwt({
     return null;
   }
 }
-

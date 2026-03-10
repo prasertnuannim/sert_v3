@@ -24,7 +24,10 @@ async function extractApiError(res: Response, fallback: string) {
 }
 
 export const userService = {
-  async create(data: { name: string; email: string; role: string }, auth: AuthInput) {
+  async create(
+    data: { name: string; email: string; role: string; tenant?: string; promotion?: string },
+    auth: AuthInput,
+  ) {
     const res = await goApiFetch("/users", {
       method: "POST",
       body: JSON.stringify(data),

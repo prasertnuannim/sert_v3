@@ -3,14 +3,16 @@ package model
 import "time"
 
 type User struct {
-	ID            string     `gorm:"type:varchar(36);primaryKey"`
-	Name          *string    `gorm:"type:varchar(255)"`
-	Username      *string    `gorm:"type:varchar(191);uniqueIndex"`
-	Email         *string    `gorm:"type:varchar(191);uniqueIndex"`
-	PasswordHash  *string    `gorm:"type:varchar(255)"`
-	Role          string     `gorm:"type:varchar(32);not null;default:user"`
+	ID            string  `gorm:"type:varchar(36);primaryKey"`
+	Name          *string `gorm:"type:varchar(255)"`
+	Username      *string `gorm:"type:varchar(191);uniqueIndex"`
+	Email         *string `gorm:"type:varchar(191);uniqueIndex"`
+	PasswordHash  *string `gorm:"type:varchar(255)"`
+	Role          string  `gorm:"type:varchar(32);not null;default:user"`
+	Tenant        *string `gorm:"type:varchar(64);index"`
+	Promotion     *string `gorm:"type:varchar(128)"`
 	EmailVerified *time.Time
-	Image         *string    `gorm:"type:text"`
+	Image         *string `gorm:"type:text"`
 
 	Accounts       []Account       `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
 	Sessions       []Session       `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`

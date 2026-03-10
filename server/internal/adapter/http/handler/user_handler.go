@@ -24,6 +24,8 @@ type userResponse struct {
 	Name      string `json:"name"`
 	Email     string `json:"email"`
 	Role      string `json:"role"`
+	Tenant    string `json:"tenant"`
+	Promotion string `json:"promotion"`
 	CreatedAt string `json:"createdAt"`
 	UpdatedAt string `json:"updatedAt"`
 }
@@ -39,11 +41,23 @@ func toUserResponse(m dbm.User) userResponse {
 		email = *m.Email
 	}
 
+	tenant := ""
+	if m.Tenant != nil {
+		tenant = *m.Tenant
+	}
+
+	promotion := ""
+	if m.Promotion != nil {
+		promotion = *m.Promotion
+	}
+
 	return userResponse{
 		ID:        m.ID,
 		Name:      name,
 		Email:     email,
 		Role:      m.Role,
+		Tenant:    tenant,
+		Promotion: promotion,
 		CreatedAt: m.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
 		UpdatedAt: m.UpdatedAt.UTC().Format("2006-01-02T15:04:05Z"),
 	}
@@ -55,6 +69,13 @@ func normalizeRole(role string) string {
 		return "user"
 	}
 	return r
+}
+
+func toOptionalString(value string) *string {
+	if value == "" {
+		return nil
+	}
+	return &value
 }
 
 func isUniqueConstraintError(err error) bool {
@@ -134,9 +155,11 @@ func (h *UserHandler) GetByID(c *fiber.Ctx) error {
 
 func (h *UserHandler) Create(c *fiber.Ctx) error {
 	var req struct {
-		Name  string `json:"name"`
-		Email string `json:"email"`
-		Role  string `json:"role"`
+		Name      string `json:"name"`
+		Email     string `json:"email"`
+		Role      string `json:"role"`
+		Tenant    string `json:"tenant"`
+		Promotion string `json:"promotion"`
 	}
 	if err := c.BodyParser(&req); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid body")
@@ -145,6 +168,8 @@ func (h *UserHandler) Create(c *fiber.Ctx) error {
 	name := strings.TrimSpace(req.Name)
 	email := strings.TrimSpace(req.Email)
 	role := normalizeRole(req.Role)
+	tenant := strings.TrimSpace(req.Tenant)
+	promotion := strings.TrimSpace(req.Promotion)
 
 	if name == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "name is required")
@@ -154,10 +179,12 @@ func (h *UserHandler) Create(c *fiber.Ctx) error {
 	}
 
 	user := dbm.User{
-		ID:    uuid.NewString(),
-		Name:  &name,
-		Email: &email,
-		Role:  role,
+		ID:        uuid.NewString(),
+		Name:      &name,
+		Email:     &email,
+		Role:      role,
+		Tenant:    toOptionalString(tenant),
+		Promotion: toOptionalString(promotion),
 	}
 
 	if err := h.db.WithContext(c.Context()).Create(&user).Error; err != nil {
@@ -177,9 +204,11 @@ func (h *UserHandler) Update(c *fiber.Ctx) error {
 	}
 
 	var req struct {
-		Name  *string `json:"name"`
-		Email *string `json:"email"`
-		Role  *string `json:"role"`
+		Name      *string `json:"name"`
+		Email     *string `json:"email"`
+		Role      *string `json:"role"`
+		Tenant    *string `json:"tenant"`
+		Promotion *string `json:"promotion"`
 	}
 	if err := c.BodyParser(&req); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid body")
@@ -203,6 +232,12 @@ func (h *UserHandler) Update(c *fiber.Ctx) error {
 			return fiber.NewError(fiber.StatusBadRequest, "role is required")
 		}
 		updates["role"] = normalizeRole(trimmed)
+	}
+	if req.Tenant != nil {
+		updates["tenant"] = toOptionalString(strings.TrimSpace(*req.Tenant))
+	}
+	if req.Promotion != nil {
+		updates["promotion"] = toOptionalString(strings.TrimSpace(*req.Promotion))
 	}
 	if len(updates) == 0 {
 		return fiber.NewError(fiber.StatusBadRequest, "at least one field is required")

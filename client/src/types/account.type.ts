@@ -11,6 +11,8 @@ export type FullUser = {
   name: string;
   email: string;
   role: UserRoleValue;
+  tenant?: string;
+  promotion?: string;
   createdAt?: string;
   updatedAt?: string;
 };

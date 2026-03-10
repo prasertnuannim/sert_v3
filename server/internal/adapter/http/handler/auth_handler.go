@@ -42,7 +42,14 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"user":          fiber.Map{"id": out.UserID, "email": out.Email, "name": out.Name, "role": out.Role},
+		"user": fiber.Map{
+			"id":        out.UserID,
+			"email":     out.Email,
+			"name":      out.Name,
+			"role":      out.Role,
+			"tenant":    out.Tenant,
+			"promotion": out.Promotion,
+		},
 		"access_token":  out.AccessToken,
 		"access_exp":    out.AccessExp.Unix(),
 		"refresh_token": out.RefreshToken,
@@ -72,6 +79,8 @@ func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
 		"user_id":       out.UserID,
 		"email":         out.Email,
 		"role":          out.Role,
+		"tenant":        out.Tenant,
+		"promotion":     out.Promotion,
 		"access_token":  out.AccessToken,
 		"access_exp":    out.AccessExp.Unix(),
 		"refresh_token": out.RefreshToken,
@@ -103,7 +112,14 @@ func (h *AuthHandler) Me(c *fiber.Ctx) error {
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "internal error")
 	}
-	return c.JSON(fiber.Map{"id": out.UserID, "email": out.Email, "name": out.Name, "role": out.Role})
+	return c.JSON(fiber.Map{
+		"id":        out.UserID,
+		"email":     out.Email,
+		"name":      out.Name,
+		"role":      out.Role,
+		"tenant":    out.Tenant,
+		"promotion": out.Promotion,
+	})
 }
 
 func (h *AuthHandler) AdminOnly(c *fiber.Ctx) error {
