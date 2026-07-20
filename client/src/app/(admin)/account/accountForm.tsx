@@ -1,18 +1,37 @@
 "use client";
 
-import { useActionState, useCallback, useEffect, useState } from "react";
-import { getUsersAction, updateUserAction, deleteUserAction, createUserAction as baseCreateUserAction } from "./actions";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { getUsersAction, updateUserAction, deleteUserAction } from "./actions";
 import { FullUser } from "@/types/account.type";
 import { DataTable, Column } from "@/components/form/dataTable";
+import CreateUserDialog from "./createUserDialog";
 
 const roleToText = (role: FullUser["role"] | undefined) =>
   typeof role === "string" ? role : role?.name ?? "";
 type UserColumnKey = "name" | "email" | "role" | "tenant" | "promotion";
 
+const toSelectOptions = (values: Array<string | undefined>) =>
+  Array.from(
+    new Set(
+      values
+        .map((value) => value?.trim() ?? "")
+        .filter((value) => value.length > 0)
+    )
+  ).sort((a, b) =>
+    a.localeCompare(b, undefined, { sensitivity: "base" })
+  );
+
+const withCurrentOption = (options: string[], value: string | undefined) => {
+  const normalized = value?.trim() ?? "";
+  if (!normalized || options.includes(normalized)) return options;
+  return [normalized, ...options];
+};
+
 export default function AccountForm() {
   const [users, setUsers] = useState<FullUser[]>([]);
   const [isUsersLoading, setIsUsersLoading] = useState(true);
   const [usersError, setUsersError] = useState<string | null>(null);
+  const [openCreateUser, setOpenCreateUser] = useState(false);
 
   const fetchUsers = useCallback(async (): Promise<FullUser[]> => {
     const result = await getUsersAction({ page: 1, limit: 100 });
@@ -36,25 +55,9 @@ export default function AccountForm() {
     }
   }, [fetchUsers]);
 
-  const createUserAction = async (state: FullUser[], formData: FormData): Promise<FullUser[]> => {
-    const result = await baseCreateUserAction(formData);
-    if (result?.success) {
-      const updated = await fetchUsers();
-      return updated;
-    }
-    return state;
-  };
-  const [state, , isCreatePending] = useActionState<FullUser[], FormData>(createUserAction, users);
-
   useEffect(() => {
     syncUsers();
   }, [syncUsers]);
-
-  useEffect(() => {
-    if (state && state.length >= users.length) {
-      setUsers(state);
-    }
-  }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleUpdateUser = async (id: string, values: Partial<FullUser>) => {
     const upd: Record<string, unknown> = {
@@ -75,6 +78,19 @@ export default function AccountForm() {
     await deleteUserAction(id);
     await syncUsers();
   };
+
+  const handleCreateUserSuccess = useCallback(async () => {
+    await syncUsers();
+  }, [syncUsers]);
+
+  const tenantOptions = useMemo(
+    () => toSelectOptions(users.map((user) => user.tenant)),
+    [users]
+  );
+  const promotionOptions = useMemo(
+    () => toSelectOptions(users.map((user) => user.promotion)),
+    [users]
+  );
 
   const columns: Column<FullUser, UserColumnKey>[] = [
     { key: "name", header: "Name", sortable: true,className: "break-all max-w-[260px]" },
@@ -108,28 +124,50 @@ export default function AccountForm() {
       header: "Tenant",
       sortable: true,
       className: "break-all max-w-[220px]",
-      editor: ({ value, set }) => (
-        <input
-          type="text"
-          value={typeof value === "string" ? value : ""}
-          onChange={(e) => set(e.target.value)}
-          className="border px-2 py-1 rounded w-full text-sm"
-        />
-      ),
+      editor: ({ value, set }) => {
+        const currentValue = typeof value === "string" ? value : "";
+        const options = withCurrentOption(tenantOptions, currentValue);
+
+        return (
+          <select
+            value={currentValue}
+            onChange={(e) => set(e.target.value)}
+            className="border px-2 py-1 rounded w-full text-sm"
+          >
+            <option value="">No tenant</option>
+            {options.map((tenant) => (
+              <option key={tenant} value={tenant}>
+                {tenant}
+              </option>
+            ))}
+          </select>
+        );
+      },
     },
     {
       key: "promotion",
       header: "Promotion",
       sortable: true,
       className: "break-all max-w-[220px]",
-      editor: ({ value, set }) => (
-        <input
-          type="text"
-          value={typeof value === "string" ? value : ""}
-          onChange={(e) => set(e.target.value)}
-          className="border px-2 py-1 rounded w-full text-sm"
-        />
-      ),
+      editor: ({ value, set }) => {
+        const currentValue = typeof value === "string" ? value : "";
+        const options = withCurrentOption(promotionOptions, currentValue);
+
+        return (
+          <select
+            value={currentValue}
+            onChange={(e) => set(e.target.value)}
+            className="border px-2 py-1 rounded w-full text-sm"
+          >
+            <option value="">No promotion</option>
+            {options.map((promotion) => (
+              <option key={promotion} value={promotion}>
+                {promotion}
+              </option>
+            ))}
+          </select>
+        );
+      },
     },
   ];
 
@@ -138,11 +176,13 @@ export default function AccountForm() {
       <DataTable<FullUser, UserColumnKey>
         data={users}
         columns={columns}
+        onCreateClick={() => setOpenCreateUser(true)}
+        createButtonText="Add user"
         initialPageSize={10}
         initialSort={{ key: "name", dir: "asc" }}
         searchPlaceholder="Search name / email / role / tenant / promotion…"
         emptyMessage={usersError ?? "No results."}
-        isLoading={isUsersLoading || isCreatePending}
+        isLoading={isUsersLoading}
         onUpdate={handleUpdateUser}
         onHardDelete={handleHardDeleteUser}
         confirmDeleteTitle="Delete this user permanently?"
@@ -155,6 +195,15 @@ export default function AccountForm() {
           confirmText: "Confirm delete",
         })}
       />
+      {openCreateUser && (
+        <CreateUserDialog
+          open={openCreateUser}
+          onOpenChange={setOpenCreateUser}
+          onCreated={handleCreateUserSuccess}
+          tenantOptions={tenantOptions}
+          promotionOptions={promotionOptions}
+        />
+      )}
     </div>
   );
 }

@@ -8,7 +8,6 @@ import FormInput from "@/components/form/formInput";
 import { LoginFormState } from "@/types/auth.type";
 import FormAlert from "@/components/form/formAlert";
 import { loginSchema } from "@/lib/validators/auth";
-import RegisterModal from "@/components/auth/registerForm";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -19,7 +18,6 @@ export default function LoginForm() {
 
   const [state, setState] = useState<LoginFormState>(initialState);
   const [isPending, setIsPending] = useState(false);
-  const [openRegister, setOpenRegister] = useState(false);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -83,47 +81,33 @@ export default function LoginForm() {
   };
 
   return (
-    <>
-      <form onSubmit={onSubmit} className="space-y-1">
-        <p className="flex justify-center text-md text-black/20 font-bold">Login with Email</p>
-        <FormInput
-          name="email"
-          type="email"
-          label="Email"
-          placeholder="Your email"
-          defaultValue={state.values?.email}
-          error={state.errors?.email}
+    <form onSubmit={onSubmit} className="space-y-1">
+      <p className="flex justify-center text-md text-black/20 font-bold">Login with Email</p>
+      <FormInput
+        name="email"
+        type="email"
+        label="Email"
+        placeholder="Your email"
+        defaultValue={state.values?.email}
+        error={state.errors?.email}
+      />
+      <FormInput
+        name="password"
+        type="password"
+        label="Password"
+        placeholder="Your password"
+        defaultValue={state.values?.password}
+        error={state.errors?.password}
+      />
+      <SubmitButton text="Login" isPending={isPending} />
+
+      {state.errors?.general && (
+        <FormAlert
+          variant="error"
+          title="Login failed"
+          message={state.errors?.general}
         />
-        <FormInput
-          name="password"
-          type="password"
-          label="Password"
-          placeholder="Your password"
-          defaultValue={state.values?.password}
-          error={state.errors?.password}
-        />
-        <SubmitButton text="Login" isPending={isPending} />
-
-        {state.errors?.general && (
-          <FormAlert
-            variant="error"
-            title="Login failed"
-            message={state.errors?.general}
-          />
-        )}
-
-        <div className="flex justify-end">
-          <button
-            type="button"
-             onClick={() => setOpenRegister(true)}
-            className="hover:text-gray-400 text-gray-500 transition text-sm"
-          >
-            Register here
-          </button>
-        </div>
-      </form>
-
-      <RegisterModal open={openRegister} onOpenChange={setOpenRegister} />
-    </>
+      )}
+    </form>
   );
 }

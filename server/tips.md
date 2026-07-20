@@ -14,7 +14,7 @@ server/                                  # โฟลเดอร์โปรเ�
 │  │  ├─ entity/                               # โครงสร้างข้อมูลเชิงธุรกิจ (Pure structs)
 │  │  │  ├─ user.go                            # User entity (ไม่ใช่ DB model)
 │  │  │  └─ refresh_token.go                   # RefreshToken entity (expires/revoked ฯลฯ)
-│  │  └─ errorx/                               # error กลางของโดเมน (ใช้ errors.Is ได้)
+│  │  └─ errors/                               # error กลางของโดเมน (ใช้ errors.Is ได้)
 │  │     └─ errors.go                          # ErrInvalidCredentials, ErrTokenExpired ฯลฯ
 │  ├─ usecase/                                 # ชั้น Usecase: กฎการทำงานของระบบ (application rules)
 │  │  ├─ auth/                                 # ยูสเคสด้าน auth

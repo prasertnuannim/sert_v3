@@ -29,11 +29,13 @@ func Register(app *fiber.App, h *handler.AuthHandler, userHandler *handler.UserH
 		limiter.New(limiter.Config{Max: 10, Expiration: time.Minute}),
 		h.Login,
 	)
+	auth.Post("/oauth", h.OAuthLogin)
 	auth.Post("/refresh", h.Refresh)
 	auth.Post("/logout", h.Logout)
 
 	protected := app.Group("", middleware.RequireAuth(verifier))
 	protected.Get("/me", h.Me)
+	protected.Get("/auth/providers/:provider/token", h.ProviderAccessToken)
 	protected.Get("/admin", middleware.RequireRole(entity.RoleAdmin), h.AdminOnly)
 
 	users := protected.Group("/users", middleware.RequireRole(entity.RoleAdmin))

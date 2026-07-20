@@ -1,11 +1,10 @@
 import React from "react";
-import ColorMotionInChar from "@/components/motion/colorMotionInChar";
-import { LogoutButton } from "@/components/auth/LogoutButton";
+import { LogoutButton } from "@/components/auth/logoutButton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getServerAuthSession } from "@/server/services/auth/sessionService";
+import { getAuthSession } from "@/services/auth/session";
 
 export default async function Navbar() {
-  const session = await getServerAuthSession();
+  const session = await getAuthSession();
   const userName = session?.user?.name ?? "User";
   const userInitial = userName?.charAt(0)?.toUpperCase?.() ?? "?";
 
@@ -24,31 +23,23 @@ export default async function Navbar() {
       <div className="mx-auto flex max-w-screen items-center justify-between px-4 py-3 sm:px-6">
         {/* Brand */}
         <div className="flex items-center gap-3">
-          <ColorMotionInChar
-            className="text-[22px] sm:text-[26px] font-bold"
-            colors={["#FF5733", "#33FF57", "#3357FF", "#F0F"]}
-            name="Smart Home"
-          />
+          <div className="text-[22px] font-bold tracking-tight text-slate-800 sm:text-[26px]">
+            Smart Home
+          </div>
         </div>
 
         {/* Right side */}
         {session?.user ? (
           <div className="flex items-center gap-3 sm:gap-4">
             <div className="hidden sm:block text-right leading-tight">
-              <div className="text-[12px] text-white">Signed in as</div>
-              <ColorMotionInChar
-                className="text-[16px] font-semibold"
-                colors={["#22D3EE", "#A78BFA", "#34D399", "#FBBF24"]}
-                name={userName}
-              />
+              <div className="text-[12px] text-slate-700">Signed in as</div>
+              <div className="text-[16px] font-semibold text-slate-900">
+                {userName}
+              </div>
             </div>
 
             <Avatar className="h-10 w-10 border border-white/15 bg-gray-800">
-              <AvatarImage
-                src={session.user.image ?? undefined}
-                alt={userName}
-                referrerPolicy="no-referrer"
-              />
+              <AvatarImage src="/avatar1.png" alt={userName} />
               <AvatarFallback className="text-sm text-white">
                 {userInitial}
               </AvatarFallback>

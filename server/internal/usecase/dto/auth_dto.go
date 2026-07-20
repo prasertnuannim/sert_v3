@@ -7,6 +7,22 @@ type LoginInput struct {
 	Password string
 }
 
+type OAuthLoginInput struct {
+	Provider              string
+	ProviderAccountID     string
+	Email                 string
+	Name                  string
+	Type                  string
+	AccessToken           *string
+	RefreshToken          *string
+	ExpiresAt             *int64
+	TokenType             *string
+	Scope                 *string
+	IDToken               *string
+	SessionState          *string
+	RefreshTokenExpiresIn *int64
+}
+
 type LoginOutput struct {
 	UserID       string
 	Email        string
@@ -47,4 +63,17 @@ type MeOutput struct {
 	Role      string
 	Tenant    string
 	Promotion string
+}
+
+type ProviderAccessTokenInput struct {
+	Provider string
+}
+
+type ProviderAccessTokenOutput struct {
+	Provider    string
+	AccessToken string
+	ExpiresAt   *time.Time
+	TokenType   string
+	Scope       string
+	Refreshed   bool
 }

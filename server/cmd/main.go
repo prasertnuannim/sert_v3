@@ -63,6 +63,10 @@ func main() {
 		cfg.JWTRefreshSecret,
 		cfg.AccessTTL,
 		cfg.RefreshTTL,
+		cfg.GoogleClientID,
+		cfg.GoogleClientSecret,
+		cfg.GitHubClientID,
+		cfg.GitHubClientSecret,
 	)
 
 	addr := ":" + strconv.Itoa(cfg.AppPort)

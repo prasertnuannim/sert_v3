@@ -10,6 +10,7 @@ import (
 	"github.com/prasertnuannim/sert_v3/internal/adapter/http/handler"
 	gormrepo "github.com/prasertnuannim/sert_v3/internal/adapter/persistence/gorm"
 	jwtinfra "github.com/prasertnuannim/sert_v3/internal/infra/jwt"
+	oauthinfra "github.com/prasertnuannim/sert_v3/internal/infra/oauth"
 	"github.com/prasertnuannim/sert_v3/internal/infra/security"
 	timeinfra "github.com/prasertnuannim/sert_v3/internal/infra/time"
 	"github.com/prasertnuannim/sert_v3/internal/usecase/auth"
@@ -23,15 +24,16 @@ type JWTConfig struct {
 	RefreshTTL    time.Duration
 }
 
-func BuildApp(db *gorm.DB, issuer, accessSecret, refreshSecret string, accessTTL, refreshTTL time.Duration) *fiber.App {
+func BuildApp(db *gorm.DB, issuer, accessSecret, refreshSecret string, accessTTL, refreshTTL time.Duration, googleClientID, googleClientSecret, githubClientID, githubClientSecret string) *fiber.App {
 	userRepo := gormrepo.NewUserRepo(db)
 	tokenRepo := gormrepo.NewTokenRepo(db)
 
 	hasher := security.BcryptHasher{}
 	j := jwtinfra.New(issuer, accessSecret, refreshSecret, accessTTL, refreshTTL)
+	oauth := oauthinfra.NewProviderRefresher(googleClientID, googleClientSecret, githubClientID, githubClientSecret)
 
 	clock := timeinfra.RealClock{}
-	authSvc := auth.New(userRepo, tokenRepo, hasher, j, j, clock)
+	authSvc := auth.New(userRepo, tokenRepo, hasher, j, j, oauth, clock)
 
 	authHandler := handler.NewAuthHandler(authSvc)
 	userHandler := handler.NewUserHandler(db)

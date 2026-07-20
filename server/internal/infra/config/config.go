@@ -26,6 +26,11 @@ type Config struct {
 	AccessTTL        time.Duration
 	RefreshTTL       time.Duration
 
+	GoogleClientID     string
+	GoogleClientSecret string
+	GitHubClientID     string
+	GitHubClientSecret string
+
 	SeedEmail    string
 	SeedPassword string
 	SeedName     string
@@ -55,6 +60,11 @@ func Load() Config {
 		JWTRefreshSecret: mustEnv("JWT_REFRESH_SECRET"),
 		AccessTTL:        time.Duration(accessMin) * time.Minute,
 		RefreshTTL:       refreshTTL,
+
+		GoogleClientID:     getEnv("GOOGLE_CLIENT_ID", ""),
+		GoogleClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
+		GitHubClientID:     getEnv("AUTH_GITHUB_ID", ""),
+		GitHubClientSecret: getEnv("AUTH_GITHUB_SECRET", ""),
 
 		SeedEmail:    getEnv("SEED_ADMIN_EMAIL", ""),
 		SeedPassword: getEnv("SEED_ADMIN_PASSWORD", ""),

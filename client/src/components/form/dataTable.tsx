@@ -1,6 +1,6 @@
 "use client";
 
-import React, { ReactNode, useMemo, useState } from "react";
+import React, { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
   Pencil,
   Save,
@@ -24,6 +24,10 @@ export type Column<T, K extends keyof T & string> = {
   header: string;
   sortable?: boolean;
   searchable?: boolean;
+  width?: number;
+  minWidth?: number;
+  maxWidth?: number;
+  resizable?: boolean;
   className?: string;
   render?: (row: T) => ReactNode;
   editor?: (args: {
@@ -57,6 +61,7 @@ export type DataTableProps<
   initialPageSize?: number;
   initialSort?: SortState<K>;
   searchPlaceholder?: string;
+  createButtonText?: string;
 
   /** 👇 Skeleton Loading options */
   isLoading?: boolean;
@@ -93,6 +98,8 @@ const toDisplayPrimitive = (raw: unknown): string => {
   return String(raw);
 };
 
+const DEFAULT_COLUMN_MIN_WIDTH = 120;
+
 export function DataTable<
   T extends { id: string },
   K extends keyof T & string
@@ -106,6 +113,7 @@ export function DataTable<
   initialPageSize = 10,
   initialSort = null,
   searchPlaceholder = "Search…",
+  createButtonText = "Add",
 
   /** Skeleton */
   isLoading = false,
@@ -124,10 +132,72 @@ export function DataTable<
   const [sort, setSort] = useState<SortState<K>>(initialSort);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(initialPageSize);
+  const [resizedColumnWidths, setResizedColumnWidths] = useState<
+    Partial<Record<K, number>>
+  >({});
 
   const [editingRowId, setEditingRowId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Partial<T>>({});
   const showActions = Boolean(renderActions || onUpdate || onHardDelete);
+  const resizeStateRef = useRef<{
+    key: K;
+    startX: number;
+    startWidth: number;
+    minWidth: number;
+    maxWidth?: number;
+  } | null>(null);
+  const columnWidths = useMemo(
+    () =>
+      columns.reduce((acc, col) => {
+        const width = resizedColumnWidths[col.key] ?? col.width;
+        if (typeof width === "number") {
+          acc[col.key] = width;
+        }
+        return acc;
+      }, {} as Partial<Record<K, number>>),
+    [columns, resizedColumnWidths]
+  );
+
+  useEffect(() => {
+    const handlePointerMove = (event: PointerEvent) => {
+      const active = resizeStateRef.current;
+      if (!active) return;
+
+      const nextWidth = Math.round(
+        Math.min(
+          active.maxWidth ?? Number.POSITIVE_INFINITY,
+          Math.max(active.minWidth, active.startWidth + event.clientX - active.startX)
+        )
+      );
+
+      setResizedColumnWidths((prev) =>
+        prev[active.key] === nextWidth
+          ? prev
+          : {
+              ...prev,
+              [active.key]: nextWidth,
+            }
+      );
+    };
+
+    const stopResize = () => {
+      if (!resizeStateRef.current) return;
+      resizeStateRef.current = null;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", stopResize);
+    window.addEventListener("pointercancel", stopResize);
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", stopResize);
+      window.removeEventListener("pointercancel", stopResize);
+      stopResize();
+    };
+  }, []);
 
   // --- Search ---
   const filtered = useMemo(() => {
@@ -221,6 +291,60 @@ export function DataTable<
     key: Key,
     value: T[Key]
   ) => setDraft((p) => ({ ...p, [key]: value }));
+
+  const getColumnMinWidth = (col: Column<T, K>) =>
+    col.minWidth ??
+    Math.min(
+      typeof col.width === "number" ? col.width : DEFAULT_COLUMN_MIN_WIDTH,
+      DEFAULT_COLUMN_MIN_WIDTH
+    );
+
+  const getColumnStyle = (col: Column<T, K>): React.CSSProperties | undefined => {
+    const width = columnWidths[col.key] ?? col.width;
+    const minWidth = getColumnMinWidth(col);
+
+    if (
+      typeof width !== "number" &&
+      typeof minWidth !== "number" &&
+      typeof col.maxWidth !== "number"
+    ) {
+      return undefined;
+    }
+
+    return {
+      width: typeof width === "number" ? `${width}px` : undefined,
+      minWidth: typeof minWidth === "number" ? `${minWidth}px` : undefined,
+      maxWidth: typeof col.maxWidth === "number" ? `${col.maxWidth}px` : undefined,
+    };
+  };
+
+  const startResize = (
+    col: Column<T, K>,
+    event: React.PointerEvent<HTMLDivElement>
+  ) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const headerCell = event.currentTarget.parentElement;
+    const startWidth =
+      columnWidths[col.key] ??
+      headerCell?.getBoundingClientRect().width ??
+      col.width ??
+      getColumnMinWidth(col);
+
+    resizeStateRef.current = {
+      key: col.key,
+      startX: event.clientX,
+      startWidth,
+      minWidth: getColumnMinWidth(col),
+      maxWidth: col.maxWidth,
+    };
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  };
 
   const defaultEditor = <Key extends keyof T & string>(key: Key) => {
     const v = draft[key] as T[Key];
@@ -344,7 +468,7 @@ export function DataTable<
             onClick={onCreateClick}
             className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
           >
-            Add
+            {createButtonText}
           </button>
         )}
       </div>
@@ -352,12 +476,22 @@ export function DataTable<
       {/* Table */}
       <div className="overflow-x-auto">
         <table className="min-w-full border-collapse">
+          <colgroup>
+            {columns.map((col) => (
+              <col
+                key={`col-${String(col.key)}`}
+                style={getColumnStyle(col)}
+              />
+            ))}
+            {showActions && <col style={{ width: "112px", minWidth: "112px" }} />}
+          </colgroup>
           <thead className="bg-gray-100">
             <tr>
               {columns.map((col) => (
                 <th
                   key={String(col.key)}
-                  className="border px-4 py-2 text-left"
+                  className="relative border px-4 py-2 pr-5 text-left"
+                  style={getColumnStyle(col)}
                 >
                   <button
                     onClick={() => toggleSort(col.key, col.sortable)}
@@ -367,6 +501,17 @@ export function DataTable<
                   >
                     {col.header} {col.sortable && <SortIcon col={col.key} />}
                   </button>
+                  {col.resizable !== false && (
+                    <div
+                      role="separator"
+                      aria-label={`Resize ${col.header} column`}
+                      aria-orientation="vertical"
+                      onPointerDown={(event) => startResize(col, event)}
+                      className="absolute inset-y-0 right-0 flex w-3 cursor-col-resize touch-none select-none items-stretch justify-center"
+                    >
+                      <span className="my-1 w-px bg-transparent transition-colors hover:bg-gray-300" />
+                    </div>
+                  )}
                 </th>
               ))}
               {showActions && (
@@ -381,7 +526,11 @@ export function DataTable<
               Array.from({ length: loadingRows }).map((_, i) => (
                 <tr key={`sk-${i}`}>
                   {columns.map((col) => (
-                    <td key={col.key} className="border px-4 py-2">
+                    <td
+                      key={col.key}
+                      className="border px-4 py-2"
+                      style={getColumnStyle(col)}
+                    >
                       <SkeletonCell
                         width={
                           col.key === "name"
@@ -416,6 +565,7 @@ export function DataTable<
                         <td
                           key={`${row.id}-${String(col.key)}`}
                           className={`border px-4 py-2 ${col.className ?? ""}`}
+                          style={getColumnStyle(col)}
                         >
                           {isEditing
                             ? col.editor

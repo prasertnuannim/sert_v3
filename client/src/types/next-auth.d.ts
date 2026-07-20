@@ -24,10 +24,10 @@ declare module "next-auth" {
     role: string;
     tenant: string;
     promotion: string;
-    accessToken: string;
-    accessTokenExp: number;
-    refreshToken: string;
-    refreshTokenExp: number;
+    accessToken?: string;
+    accessTokenExp?: number;
+    refreshToken?: string;
+    refreshTokenExp?: number;
   }
 }
 
